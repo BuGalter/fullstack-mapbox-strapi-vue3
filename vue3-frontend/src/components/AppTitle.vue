@@ -1,42 +1,20 @@
 <template>
-  <div class="conteiner">
-    <AddButton />
-    <h2 class="title">
-      {{ text }}
-    </h2>
-  </div>
+  <h2 class="title">
+    {{ titleText }}
+  </h2>
 </template>
 
 <script>
-import AddButton from './AddButton.vue';
-
 export default {
   name: 'AppTitle',
 
-  components: {
-    AddButton,
-  },
-
-  data() {
-    return {
-      text: 'Приложение для отображения участков на карте',
-    };
-  },
+  props: ['titleText'],
 };
 </script>
 
 <style>
-.conteiner {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 0;
-  padding-top: 0;
-  width: 90vw;
-  margin-left: auto;
-  margin-right: auto;
-}
-
 .title {
-  align-self: center;
+  margin-top: 0;
+  text-align: center;
 }
 </style>
