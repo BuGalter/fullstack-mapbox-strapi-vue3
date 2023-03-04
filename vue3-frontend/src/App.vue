@@ -1,26 +1,45 @@
 <template>
-  <AppTitle />
-  <div id="mapConteiner" />
+  <AppTitle :titleText="titleText" />
+  <AppMap
+    :token="accessToken"
+    :mapCenter="mapCenter"
+    :colors="colors"
+    :zoom="zoom"
+    :isClicked="isClicked"
+    :addPoint="addPoint"
+  />
+  <div class="conteiner">
+    <AppButton class="button" :buttonText="buttonAddText" :eventHandler="this.clicked" />
+    <div class="inputArea">
+      <span v-for="point in coordinatePoint" :key="point">{{ point }}</span>
+    </div>
+    <AppButton class="button" :buttonText="buttonSendText" :eventHandler="this.sendData" />
+  </div>
 </template>
 
 <script>
-import mapboxgl from 'mapbox-gl';
+import AppButton from './components/AppButton.vue';
 import AppTitle from './components/AppTitle.vue';
-import axios from 'axios';
-import 'mapbox-gl/dist/mapbox-gl.css';
+import AppMap from './components/AppMap.vue';
 
 export default {
   name: 'App',
   components: {
     AppTitle,
+    AppMap,
+    AppButton,
   },
 
   data() {
     return {
+      titleText: 'Приложение для отображения участков на карте',
+      buttonAddText: 'Добавить участок',
+      buttonSendText: 'Сохранить участок',
+      alertText: `Для выбора границ участка\nНеобходимо нажимать на карту в нужных токах\nИх должно быть не менее трех`,
       accessToken: process.env.VUE_APP_MAPBOX_TOKEN,
-      plots: null,
-      points: null,
       mapCenter: [43.278971, 19.375222],
+      zoom: 2,
+      isClicked: false,
       colors: [
         '#00008B',
         '#9400D3',
@@ -29,79 +48,26 @@ export default {
         '#00FF00',
         '#F0E68C',
       ],
+      coordinatePoint: [],
     };
   },
 
   methods: {
-    fetchPlots() {
-      axios
-        .get('http://localhost:1337/api/plots?populate=*')
-        .then((response) => {
-          this.plots = response.data.data;
-        })
-        .catch((err) => console.log(err));
+    clicked: function (event) {
+      console.log(event);
+      alert(this.alertText);
+      this.isClicked = true;
     },
 
-    getGeoJsonData(points) {
-      const geoJsonData = points.map((element) => {
-        return [element.attributes.longitude, element.attributes.latitude];
-      });
-
-      return geoJsonData;
+    sendData: function (event) {
+      console.log(event);
+      this.isClicked = false;
+      this.coordinatePoint = [];
     },
 
-    randomInteger(min, max) {
-      // случайное число от min до (max+1)
-      let rand = min + Math.random() * (max + 1 - min);
-      return Math.floor(rand);
+    addPoint: function (point) {
+      this.coordinatePoint.push(point);
     },
-  },
-
-  mounted() {
-    this.fetchPlots();
-
-    mapboxgl.accessToken = process.env.VUE_APP_MAPBOX_TOKEN;
-
-    const map = new mapboxgl.Map({
-      container: 'mapConteiner',
-      style: 'mapbox://styles/mapbox/outdoors-v11',
-      center: this.mapCenter,
-      zoom: 1,
-    });
-
-    map.on('load', () => {
-      for (let i = 0; i < this.plots.length; i += 1) {
-        this.points = this.plots[i].attributes.points.data;
-        let coordinates = this.getGeoJsonData(this.points);
-        let plotId = this.plots[i].id.toString();
-        let numberRandomColor = this.randomInteger(0, this.plots.length); 
-
-        map.addSource(plotId, {
-          type: 'geojson',
-          data: {
-            type: 'Feature',
-            geometry: {
-              type: 'Polygon',
-              coordinates: [coordinates],
-            },
-          },
-        });
-
-        map.addLayer({
-          id: plotId,
-          type: 'fill',
-          source: plotId, // reference the data source
-          layout: {},
-          paint: {
-            'fill-color': this.colors[numberRandomColor], // random color fill
-            'fill-opacity': 0.7,
-          },
-        });
-      }
-    });
-
-    const nav = new mapboxgl.NavigationControl();
-    map.addControl(nav, 'top-right');
   },
 };
 </script>
@@ -111,12 +77,24 @@ export default {
   font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-#mapConteiner {
-  height: 90vh;
   width: 90vw;
   margin-left: auto;
   margin-right: auto;
+}
+
+.conteiner {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.inputArea {
+  width: 60%;
+  align-self: center;
+}
+
+.button {
+  align-self: center;
+  padding-top: 10px;
+  padding-bottom: 10px;
 }
 </style>
