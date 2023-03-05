@@ -52,10 +52,10 @@ export default {
       buttonAddText: 'Добавить участок',
       buttonSendText: 'Сохранить участок',
       buttonAbortText: 'Отменить ввод',
-      alertText: `Для выбора границ участка\nНеобходимо нажимать на карту в нужных токах\nИх должно быть не менее трех`,
+      alertText: `Для выбора границ участка\nНеобходимо нажимать на карту в нужных точках\nИх должно быть не менее трех`,
       alertTextNeedData: 'Не хватает координат!',
       accessToken: process.env.VUE_APP_MAPBOX_TOKEN,
-      baseUrl:'http://localhost:1337/api',
+      baseUrl: 'http://localhost:1337/api',
       urlAddPlots: '/plots',
       urlAddPoints: '/points',
       mapCenter: [43.278971, 19.375222],
@@ -77,12 +77,19 @@ export default {
 
   methods: {
     clicked: function (event) {
+      /**
+       * Меняет состояние кнопки - добавить участок
+       */
       console.log(event);
       alert(this.alertText);
       this.isClicked = true;
     },
 
     sendData: function (event) {
+      /**
+       * Проверка перед отправкой, что точек не менее трех
+       * Вызов функции для отправки данных к апи
+       */
       console.log(event);
       if (this.coordinatePoint.length < 3) {
         alert(this.alertTextNeedData);
@@ -94,16 +101,27 @@ export default {
     },
 
     abortSend: function (event) {
+      /**
+       * Отмена отправки, очистка поля в котором отображаются текущие
+       * координаты точек для отправки
+       */
       console.log(event);
       this.isClicked = false;
       this.coordinatePoint = [];
     },
 
     addPoint: function (point) {
+      /**
+       * Добавляет точки для отправки
+       */
       this.coordinatePoint.push(point);
     },
 
     generatePointsToSave: function () {
+      /**
+       * Приводит точки к виду, который необходим для сохранения
+       * координат в базе данных
+       */
       this.pointsToSave = this.coordinatePoint.map((element) => {
         return {
           latitude: element[0],
@@ -113,6 +131,9 @@ export default {
     },
 
     addPlotToDb: async function () {
+      /**
+       * Добавляет в базу данных введеный пользователем участок
+       */
       try {
         let response = await axios.post('http://localhost:1337/api/plots', {
           data: {
@@ -128,6 +149,9 @@ export default {
     },
 
     addPointToDb: async function (point) {
+      /**
+       * Добавляет в базу данных точку из массива добовляемых координат
+       */
       try {
         const response = await axios.post('http://localhost:1337/api/points', {
           data: point,
@@ -141,6 +165,9 @@ export default {
     },
 
     addConnectionPlotPoint: async function (pointId, plotId) {
+      /**
+       * Добавляет в базу данных связь между участком и текущей точкой
+       */
       try {
         await axios.put(`http://localhost:1337/api/plots/${plotId}`, {
           data: {
@@ -156,6 +183,9 @@ export default {
     },
 
     axiosSendData: async function () {
+      /**
+       * Основная функция отправки заданого пользователем участка в базу данных
+       */
       this.generatePointsToSave();
 
       let plotId = await this.addPlotToDb();

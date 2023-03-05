@@ -25,6 +25,9 @@ export default {
 
   methods: {
     getPlotsFromApi: async function () {
+      /**
+       * Получить данные об участках из апи
+       */
       try {
         let response = await axios.get(this.urlGetPlots);
         return response.data.data;
@@ -35,6 +38,9 @@ export default {
     },
 
     getGeoJsonData(points) {
+      /**
+       * Преобразовать полученные данные из апи к ГеоДжейсон формату
+       */
       const geoJsonData = points.map((element) => {
         return [element.attributes.longitude, element.attributes.latitude];
       });
@@ -43,13 +49,25 @@ export default {
     },
 
     randomInteger(min, max) {
-      // случайное число от min до (max+1)
-      let rand = min + Math.random() * (max + 1 - min);
+      /**
+       * Получить рендомное целое число из интервала 0, длинна массива цветов,
+       * чтобы выбрать цвет для закрашивания текущего участка
+       */
+      let rand = min + Math.random() * (max - min);
       return Math.floor(rand);
     },
   },
 
   mounted() {
+    /**
+     * Основная функция, где происходит:
+     * Получение экземпляра карты
+     * Получение данных об участках из апи
+     * Отрисовка карты
+     * Отрисовка участков в соответствие с данными из апи
+     * Добавление навигации по карте
+     * Добавление маркера при нажатие на карту в режиме ввода данных об участке 
+     */
     mapboxgl.accessToken = this.token;
 
     const map = new mapboxgl.Map({
@@ -66,7 +84,7 @@ export default {
         this.points = this.plots[i].attributes.points.data;
         let coordinates = this.getGeoJsonData(this.points);
         let plotId = this.plots[i].id.toString();
-        let numberRandomColor = this.randomInteger(0, this.colors.length - 1);
+        let numberRandomColor = this.randomInteger(0, this.colors.length);
 
         map.addSource(plotId, {
           type: 'geojson',
