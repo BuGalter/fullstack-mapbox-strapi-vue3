@@ -9,11 +9,24 @@
     :addPoint="addPoint"
   />
   <div class="conteiner">
-    <AppButton class="button" :buttonText="buttonAddText" :eventHandler="this.clicked" />
+    <AppButton
+      class="button"
+      :buttonText="buttonAddText"
+      :eventHandler="this.clicked"
+    />
     <div class="inputArea">
       <span v-for="point in coordinatePoint" :key="point">{{ point }}</span>
     </div>
-    <AppButton class="button" :buttonText="buttonSendText" :eventHandler="this.sendData" />
+    <AppButton
+      class="button"
+      :buttonText="buttonAbortText"
+      :eventHandler="this.abortSend"
+    />
+    <AppButton
+      class="button"
+      :buttonText="buttonSendText"
+      :eventHandler="this.sendData"
+    />
   </div>
 </template>
 
@@ -35,6 +48,7 @@ export default {
       titleText: 'Приложение для отображения участков на карте',
       buttonAddText: 'Добавить участок',
       buttonSendText: 'Сохранить участок',
+      buttonAbortText: 'Отменить ввод',
       alertText: `Для выбора границ участка\nНеобходимо нажимать на карту в нужных токах\nИх должно быть не менее трех`,
       accessToken: process.env.VUE_APP_MAPBOX_TOKEN,
       mapCenter: [43.278971, 19.375222],
@@ -60,6 +74,12 @@ export default {
     },
 
     sendData: function (event) {
+      console.log(event);
+      this.isClicked = false;
+      this.coordinatePoint = [];
+    },
+
+    abortSend: function (event) {
       console.log(event);
       this.isClicked = false;
       this.coordinatePoint = [];
