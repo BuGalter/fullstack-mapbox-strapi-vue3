@@ -5,10 +5,13 @@
 
 ## Список основных технологий проекта
 
-Vue3
-Axios
-Mapbox API
-API on Strapi
+### Vue3
+
+### Axios
+
+### Mapbox API
+
+### API on Strapi
 
 ## Структура проекта
 
