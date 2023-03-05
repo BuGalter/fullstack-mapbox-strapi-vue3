@@ -10,25 +10,28 @@ import mapboxgl from 'mapbox-gl';
 export default {
   name: 'AppMap',
 
-  props: ['token', 'mapCenter', 'colors', 'zoom', 'isClicked', 'addPoint'],
+  props: ['token', 'mapCenter', 'colors', 'zoom', 'isClicked', 'addPoint', 'baseUrl'],
 
   data() {
     return {
       plots: null,
       points: null,
-      apiUrl: 'http://localhost:1337/api/plots?populate=*',
+      urlGetPlots: this.baseUrl + '/plots?populate=*',
       marker: new mapboxgl.Marker(),
+      mapStyle: 'mapbox://styles/mapbox/outdoors-v11',
+      alertText: 'Упс... Апи молчит!!!',
     };
   },
 
   methods: {
-    fetchPlots() {
-      axios
-        .get(this.apiUrl)
-        .then((response) => {
-          this.plots = response.data.data;
-        })
-        .catch((err) => console.log(err));
+    getPlotsFromApi: async function () {
+      try {
+        let response = await axios.get(this.urlGetPlots);
+        return response.data.data;
+      } catch (error) {
+        alert(this.alertText);
+        console.error(error);
+      }
     },
 
     getGeoJsonData(points) {
@@ -47,23 +50,23 @@ export default {
   },
 
   mounted() {
-    this.fetchPlots();
-
     mapboxgl.accessToken = this.token;
 
     const map = new mapboxgl.Map({
       container: 'mapConteiner',
-      style: 'mapbox://styles/mapbox/outdoors-v11',
+      style: this.mapStyle,
       center: this.mapCenter,
       zoom: this.zoom,
     });
 
-    map.on('load', () => {
+    map.on('load', async () => {
+      this.plots = await this.getPlotsFromApi();
+
       for (let i = 0; i < this.plots.length; i += 1) {
         this.points = this.plots[i].attributes.points.data;
         let coordinates = this.getGeoJsonData(this.points);
         let plotId = this.plots[i].id.toString();
-        let numberRandomColor = this.randomInteger(0, this.plots.length);
+        let numberRandomColor = this.randomInteger(0, this.colors.length - 1);
 
         map.addSource(plotId, {
           type: 'geojson',
@@ -97,7 +100,7 @@ export default {
       this.marker.remove();
       if (this.isClicked) {
         this.marker.remove();
-        this.marker.setLngLat(point.reverse()).addTo(map);
+        this.marker.setLngLat([point[1], point[0]]).addTo(map);
         this.addPoint(point);
       }
     });
