@@ -1,14 +1,18 @@
 {
-  "name": "api-strapi-backend",
+  "name": "api-strapi-plots-map",
   "private": true,
   "version": "0.1.0",
-  "description": "A Strapi application",
+  "description": "A Strapi application for storage plots",
   "scripts": {
     "develop": "strapi develop",
     "start": "strapi start",
     "build": "strapi build",
     "strapi": "strapi"
   },
+  "keywords": [
+    "JavaScript",
+    "Strapi"
+  ],
   "devDependencies": {},
   "dependencies": {
     "@strapi/strapi": "4.7.1",
