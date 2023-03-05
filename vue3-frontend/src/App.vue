@@ -7,6 +7,8 @@
     :zoom="zoom"
     :isClicked="isClicked"
     :addPoint="addPoint"
+    :baseUrl="baseUrl"
+    :key="reloadMapKey"
   />
   <div class="conteiner">
     <AppButton
@@ -31,6 +33,7 @@
 </template>
 
 <script>
+import axios from 'axios';
 import AppButton from './components/AppButton.vue';
 import AppTitle from './components/AppTitle.vue';
 import AppMap from './components/AppMap.vue';
@@ -50,10 +53,16 @@ export default {
       buttonSendText: 'Сохранить участок',
       buttonAbortText: 'Отменить ввод',
       alertText: `Для выбора границ участка\nНеобходимо нажимать на карту в нужных токах\nИх должно быть не менее трех`,
+      alertTextNeedData: 'Не хватает координат!',
       accessToken: process.env.VUE_APP_MAPBOX_TOKEN,
+      baseUrl:'http://localhost:1337/api',
+      urlAddPlots: '/plots',
+      urlAddPoints: '/points',
       mapCenter: [43.278971, 19.375222],
       zoom: 2,
       isClicked: false,
+      pointsToSave: [],
+      reloadMapKey: false,
       colors: [
         '#00008B',
         '#9400D3',
@@ -75,8 +84,13 @@ export default {
 
     sendData: function (event) {
       console.log(event);
-      this.isClicked = false;
-      this.coordinatePoint = [];
+      if (this.coordinatePoint.length < 3) {
+        alert(this.alertTextNeedData);
+      } else {
+        this.axiosSendData();
+        this.coordinatePoint = [];
+        this.isClicked = false;
+      }
     },
 
     abortSend: function (event) {
@@ -87,6 +101,72 @@ export default {
 
     addPoint: function (point) {
       this.coordinatePoint.push(point);
+    },
+
+    generatePointsToSave: function () {
+      this.pointsToSave = this.coordinatePoint.map((element) => {
+        return {
+          latitude: element[0],
+          longitude: element[1],
+        };
+      });
+    },
+
+    addPlotToDb: async function () {
+      try {
+        let response = await axios.post('http://localhost:1337/api/plots', {
+          data: {
+            level: Math.floor(Math.random() * 10),
+          },
+        });
+
+        return response.data.data.id;
+      } catch (error) {
+        alert(`Упс... Что то пошло не так!!! Участок не добавлен!!!`);
+        console.error(error);
+      }
+    },
+
+    addPointToDb: async function (point) {
+      try {
+        const response = await axios.post('http://localhost:1337/api/points', {
+          data: point,
+        });
+
+        return response.data.data.id;
+      } catch (error) {
+        alert(`Упс... Что то пошло не так!!! Точка не добавленна!!!`);
+        console.error(error);
+      }
+    },
+
+    addConnectionPlotPoint: async function (pointId, plotId) {
+      try {
+        await axios.put(`http://localhost:1337/api/plots/${plotId}`, {
+          data: {
+            points: {
+              connect: [pointId],
+            },
+          },
+        });
+      } catch (error) {
+        alert(`Упс... Что то пошло не так!!! Связь не была созданна!!!`);
+        console.error(error);
+      }
+    },
+
+    axiosSendData: async function () {
+      this.generatePointsToSave();
+
+      let plotId = await this.addPlotToDb();
+
+      this.pointsToSave.forEach(async (point) => {
+        let pointId = await this.addPointToDb(point);
+        await this.addConnectionPlotPoint(pointId, plotId);
+      });
+
+      alert(`Участок ${plotId} добавлен!`);
+      this.reloadMapKey = !this.reloadMapKey;
     },
   },
 };
@@ -110,6 +190,8 @@ export default {
 .inputArea {
   width: 60%;
   align-self: center;
+  text-align: center;
+  font-size: small;
 }
 
 .button {
