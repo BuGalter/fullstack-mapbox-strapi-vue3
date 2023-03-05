@@ -10,7 +10,15 @@ import mapboxgl from 'mapbox-gl';
 export default {
   name: 'AppMap',
 
-  props: ['token', 'mapCenter', 'colors', 'zoom', 'isClicked', 'addPoint', 'baseUrl'],
+  props: [
+    'token',
+    'mapCenter',
+    'colors',
+    'zoom',
+    'isClicked',
+    'addPoint',
+    'baseUrl',
+  ],
 
   data() {
     return {
@@ -66,7 +74,7 @@ export default {
      * Отрисовка карты
      * Отрисовка участков в соответствие с данными из апи
      * Добавление навигации по карте
-     * Добавление маркера при нажатие на карту в режиме ввода данных об участке 
+     * Добавление маркера при нажатие на карту в режиме ввода данных об участке
      */
     mapboxgl.accessToken = this.token;
 
