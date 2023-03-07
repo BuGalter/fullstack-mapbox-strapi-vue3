@@ -10,16 +10,26 @@ import mapboxgl from 'mapbox-gl';
 export default {
   name: 'AppMap',
 
-  props: ['token', 'mapCenter', 'colors', 'zoom', 'isClicked', 'addPoint', 'baseUrl'],
+  props: [
+    'token',
+    'mapCenter',
+    'colors',
+    'zoom',
+    'isClicked',
+    'addPoint',
+    'addMarker',
+    'baseUrl',
+    'deletePlot',
+  ],
 
   data() {
     return {
       plots: null,
       points: null,
       urlGetPlots: this.baseUrl + '/plots?populate=*',
-      marker: new mapboxgl.Marker(),
       mapStyle: 'mapbox://styles/mapbox/outdoors-v11',
       alertText: 'Упс... Апи молчит!!!',
+      plotOnDelete: null,
     };
   },
 
@@ -56,6 +66,51 @@ export default {
       let rand = min + Math.random() * (max - min);
       return Math.floor(rand);
     },
+
+    async handlerButtonDelete() {
+      /**
+       * Подтверждает удаления заданнго участка
+       */
+      await this.deletePlot(this.plotOnDelete);
+    },
+
+    createPopUpTextElement(text, className) {
+      /**
+       * Создает контейнер для текста всплывающего меню
+       */
+      let p = document.createElement('p');
+      p.textContent = text;
+      p.className = className;
+
+      return p;
+    },
+
+    createPopUpButton(text, className, handler) {
+      /**
+       * Создает кнопку для всплывающего окна
+       */
+      let button = document.createElement('button');
+      button.type = 'button';
+      button.className = className;
+      button.textContent = text;
+      button.onclick = handler;
+
+      return button;
+    },
+
+    createMap() {
+      /**
+       * Создает экземпляр карты
+       */
+      const map = new mapboxgl.Map({
+        container: 'mapConteiner',
+        style: this.mapStyle,
+        center: this.mapCenter,
+        zoom: this.zoom,
+      });
+
+      return map;
+    },
   },
 
   mounted() {
@@ -66,27 +121,33 @@ export default {
      * Отрисовка карты
      * Отрисовка участков в соответствие с данными из апи
      * Добавление навигации по карте
-     * Добавление маркера при нажатие на карту в режиме ввода данных об участке 
+     * Добавление всплывающего меню
+     * Добавление маркеров - границ участка  при нажатие на карту
+     * в режиме ввода данных об участке
      */
     mapboxgl.accessToken = this.token;
 
-    const map = new mapboxgl.Map({
-      container: 'mapConteiner',
-      style: this.mapStyle,
-      center: this.mapCenter,
-      zoom: this.zoom,
-    });
+    const map = this.createMap();
 
     map.on('load', async () => {
+      const nav = new mapboxgl.NavigationControl();
+      map.addControl(nav, 'top-right');
+
       this.plots = await this.getPlotsFromApi();
 
       for (let i = 0; i < this.plots.length; i += 1) {
         this.points = this.plots[i].attributes.points.data;
+
         let coordinates = this.getGeoJsonData(this.points);
+
         let plotId = this.plots[i].id.toString();
+
         let numberRandomColor = this.randomInteger(0, this.colors.length);
 
         map.addSource(plotId, {
+          /**
+           * Добавление участка по координатам из апи
+           */
           type: 'geojson',
           data: {
             type: 'Feature',
@@ -98,6 +159,9 @@ export default {
         });
 
         map.addLayer({
+          /**
+           * Закрашивание участка
+           */
           id: plotId,
           type: 'fill',
           source: plotId, // reference the data source
@@ -107,18 +171,51 @@ export default {
             'fill-opacity': 0.7,
           },
         });
+
+        map.on('click', plotId, (e) => {
+          /**
+           * Создание всплывающего меню
+           */
+          this.plotOnDelete = e.features[0].layer.id;
+          let div = document.createElement('div');
+          let text = `Участок номер: ${plotId}`;
+          let p = this.createPopUpTextElement(text, 'plot');
+          div.append(p);
+          let button = this.createPopUpButton(
+            'Удалить',
+            'button',
+            this.handlerButtonDelete
+          );
+          div.append(button);
+          new mapboxgl.Popup()
+            .setLngLat(e.lngLat)
+            .setDOMContent(div)
+            .addTo(map);
+        });
+
+        // Change the cursor to a pointer when
+        // the mouse is over the plots layer.
+        map.on('mouseenter', plotId, () => {
+          map.getCanvas().style.cursor = 'pointer';
+        });
+
+        // Change the cursor back to a pointer
+        // when it leaves the plots layer.
+        map.on('mouseleave', plotId, () => {
+          map.getCanvas().style.cursor = '';
+        });
       }
     });
 
-    const nav = new mapboxgl.NavigationControl();
-    map.addControl(nav, 'top-right');
-
     map.on('click', (e) => {
+      /**
+       * Создание маркеров, ограничевающих, выбраный участок
+       */
       let point = [e.lngLat.lat, e.lngLat.lng];
-      this.marker.remove();
       if (this.isClicked) {
-        this.marker.remove();
-        this.marker.setLngLat([point[1], point[0]]).addTo(map);
+        let marker = new mapboxgl.Marker();
+        marker.setLngLat([point[1], point[0]]).addTo(map);
+        this.addMarker(marker);
         this.addPoint(point);
       }
     });
@@ -129,5 +226,9 @@ export default {
 <style>
 #mapConteiner {
   height: 80vh;
+}
+
+.plot {
+  text-align: center;
 }
 </style>
