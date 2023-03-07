@@ -7,7 +7,9 @@
     :zoom="zoom"
     :isClicked="isClicked"
     :addPoint="addPoint"
+    :addMarker="addMarker"
     :baseUrl="baseUrl"
+    :deletePlot="deletePlot"
     :key="reloadMapKey"
   />
   <div class="conteiner">
@@ -72,25 +74,24 @@ export default {
         '#F0E68C',
       ],
       coordinatePoint: [],
+      markers: [],
     };
   },
 
   methods: {
-    clicked: function (event) {
+    clicked: function () {
       /**
        * Меняет состояние кнопки - добавить участок
        */
-      console.log(event);
       alert(this.alertText);
       this.isClicked = true;
     },
 
-    sendData: function (event) {
+    sendData: function () {
       /**
        * Проверка перед отправкой, что точек не менее трех
        * Вызов функции для отправки данных к апи
        */
-      console.log(event);
       if (this.coordinatePoint.length < 3) {
         alert(this.alertTextNeedData);
       } else {
@@ -100,14 +101,14 @@ export default {
       }
     },
 
-    abortSend: function (event) {
+    abortSend: function () {
       /**
        * Отмена отправки, очистка поля в котором отображаются текущие
        * координаты точек для отправки
        */
-      console.log(event);
       this.isClicked = false;
       this.coordinatePoint = [];
+      this.markers.forEach((marker) => marker.remove());
     },
 
     addPoint: function (point) {
@@ -115,6 +116,10 @@ export default {
        * Добавляет точки для отправки
        */
       this.coordinatePoint.push(point);
+    },
+
+    addMarker: function (marker) {
+      this.markers.push(marker);
     },
 
     generatePointsToSave: function () {
@@ -135,7 +140,7 @@ export default {
        * Добавляет в базу данных введеный пользователем участок
        */
       try {
-        let response = await axios.post('http://localhost:1337/api/plots', {
+        let response = await axios.post(`${this.baseUrl}/plots`, {
           data: {
             level: Math.floor(Math.random() * 10),
           },
@@ -153,7 +158,7 @@ export default {
        * Добавляет в базу данных точку из массива добовляемых координат
        */
       try {
-        const response = await axios.post('http://localhost:1337/api/points', {
+        const response = await axios.post(`${this.baseUrl}/points`, {
           data: point,
         });
 
@@ -169,7 +174,7 @@ export default {
        * Добавляет в базу данных связь между участком и текущей точкой
        */
       try {
-        await axios.put(`http://localhost:1337/api/plots/${plotId}`, {
+        await axios.put(`${this.baseUrl}/plots/${plotId}`, {
           data: {
             points: {
               connect: [pointId],
@@ -197,6 +202,55 @@ export default {
 
       alert(`Участок ${plotId} добавлен!`);
       this.reloadMapKey = !this.reloadMapKey;
+    },
+
+    getPointsToDeletePlot: async function (plotId) {
+      /**
+       * Получает связанные с удаляемым участком, точки
+       */
+      try {
+        let response = await axios.get(
+          `${this.baseUrl}/plots/${plotId}?populate=*`
+        );
+
+        return response.data.data.attributes.points.data;
+      } catch (error) {
+        alert(`Упс... Что то пошло не так!!! Точки не полученны!!!`);
+        console.error(error);
+      }
+    },
+
+    deletePoint: async function (pointId) {
+      /**
+       * Удаляет точку с заданным id
+       */
+      try {
+        await axios.delete(`${this.baseUrl}/points/${pointId}`);
+      } catch (error) {
+        alert(`Упс... Что то пошло не так!!! Точка не удалена!!!`);
+        console.error(error);
+      }
+    },
+
+    deletePlot: async function (plotId) {
+      /**
+       * Удаляет участок
+       * Удаляет точки
+       */
+      let points = await this.getPointsToDeletePlot(plotId);
+
+      try {
+        points.forEach(async (point) => {
+          await this.deletePoint(point.id);
+        });
+
+        await axios.delete(`${this.baseUrl}/plots/${plotId}`);
+        alert(`Участок ${plotId} удален!`);
+        this.reloadMapKey = !this.reloadMapKey;
+      } catch (error) {
+        alert(`Упс... Что то пошло не так!!! Удалить не удалось!!!`);
+        console.error(error);
+      }
     },
   },
 };
